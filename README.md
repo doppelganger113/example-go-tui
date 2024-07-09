@@ -13,7 +13,7 @@ Example TUI (terminal UI) application written in Go for showing off functionalit
 - The token command is disabled until we retrieve the user
 - Add a loading spinner for lengthy actions
 
-[TUI example](./assets/tui_example.gif)
+![TUI example](./assets/tui_example.gif)
 
 ## Setup
 
