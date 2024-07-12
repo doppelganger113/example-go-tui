@@ -3,9 +3,20 @@ package main
 import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"gotui/internal/tui"
 	"log"
 	"os"
 	"strings"
+)
+
+const (
+	// In real life situations we'd adjust the document to fit the width we've
+	// detected. In the case of this example we're hardcoding the width, and
+	// later using the detected width only to truncate in order to avoid jaggy
+	// wrapping.
+	width = 96
+
+	columnWidth = 30
 )
 
 type command struct {
@@ -15,6 +26,7 @@ type command struct {
 
 type model struct {
 	stateDescription string
+	stateStatus      tui.StatusBarState
 	commands         []command // items on the to-do list
 	cursor           int       // which to-do list item our cursor is pointing at
 }
@@ -68,8 +80,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	doc := &strings.Builder{}
 
+	tui.RenderTitleRow(width, doc, tui.TitleRowProps{Title: "GO TUI example"})
+	doc.WriteString("\n\n")
+
 	doc.WriteString(fmt.Sprintf("Cursor: %d", m.cursor))
 	doc.WriteString("\n\n")
+
+	tui.RenderStatusBar(doc, tui.NewStatusBarProps(&tui.StatusBarProps{
+		Description: m.stateDescription,
+		User:        "NONE",
+		StatusState: tui.StatusBarStateBlue,
+		Width:       width,
+	}))
 
 	// Footer
 	doc.WriteString("Press q to quit.")
