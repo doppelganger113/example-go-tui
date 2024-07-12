@@ -50,8 +50,8 @@ func InitDatabase() tea.Msg {
 }
 
 type GetUserByEmailMsg struct {
-	user *storage.User
-	err  error
+	User *storage.User
+	Err  error
 }
 
 func GetUserByEmail(userRepo *storage.UserRepository, email string) tea.Cmd {
@@ -59,8 +59,8 @@ func GetUserByEmail(userRepo *storage.UserRepository, email string) tea.Cmd {
 		user, err := userRepo.FindByEmail(context.TODO(), email)
 
 		return GetUserByEmailMsg{
-			user: user,
-			err:  err,
+			User: user,
+			Err:  err,
 		}
 	}
 }
