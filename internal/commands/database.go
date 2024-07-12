@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"gotui/internal/storage"
 	"os"
+	"time"
 )
 
 type DbConnection struct {
@@ -62,5 +63,21 @@ func GetUserByEmail(userRepo *storage.UserRepository, email string) tea.Cmd {
 			User: user,
 			Err:  err,
 		}
+	}
+}
+
+type GetTokenByUserEmail struct {
+	Token string
+	Err   error
+}
+
+func GetLatestTokenByUserEmail(userEmail string) tea.Cmd {
+	return func() tea.Msg {
+		// We simulate an I/O
+		time.Sleep(time.Second * 2)
+
+		timeTextBytes, err := time.Now().UTC().MarshalText()
+
+		return GetTokenByUserEmail{Token: userEmail + string(timeTextBytes), Err: err}
 	}
 }

@@ -122,6 +122,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case commands.GetTokenByUserEmail:
+		m.loading = false
+		m.mode = appModeDefault
+		if msg.Err != nil {
+			m.stateDescription = msg.Err.Error()
+			m.stateStatus = tui.StatusBarStateRed
+		} else {
+			m.stateDescription = "Retrieved token"
+			m.stateStatus = tui.StatusBarStateGreen
+			m.secondListHeader = "Token"
+			m.secondListValues = []string{msg.Token}
+		}
+
+		return m, nil
+
 	// Is it a key press?
 	case tea.KeyMsg:
 		// Cool, what was the actual key pressed?
@@ -147,6 +162,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if m.cursor == 0 {
 				m.mode = appModeInput
+			} else if m.cursor == 1 && m.user != nil {
+				m.stateDescription = fmt.Sprintf("Fetching %s token...", m.user.Email)
+				m.loading = true
+				m.mode = appModeLoading
+				m.stateStatus = tui.StatusBarStateBlue
+				return m, commands.GetLatestTokenByUserEmail(m.user.Email)
 			}
 
 			return m, nil
