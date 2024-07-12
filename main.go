@@ -217,9 +217,13 @@ func (m model) View() string {
 		stateDescription = m.spinner.View()
 	}
 
+	retrievedUser := "NONE"
+	if m.user != nil {
+		retrievedUser = m.user.Email
+	}
 	tui.RenderStatusBar(doc, tui.NewStatusBarProps(&tui.StatusBarProps{
 		Description: stateDescription,
-		User:        "NONE",
+		User:        retrievedUser,
 		StatusState: m.stateStatus,
 		Width:       width,
 	}))
