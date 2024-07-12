@@ -1,8 +1,11 @@
 package main
 
 import (
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"gotui/internal/commands"
+	"gotui/internal/storage"
 	"gotui/internal/tui"
 	"log"
 	"os"
@@ -31,11 +34,22 @@ type model struct {
 	cursor           int       // which to-do list item our cursor is pointing at
 	secondListHeader string
 	secondListValues []string
+	dbConnection     *commands.DbConnection
+	user             *storage.User
+	loading          bool
+	spinner          spinner.Model
 }
 
 func initialModel() model {
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+
 	return model{
+		spinner:          s,
+		loading:          true,
 		stateDescription: "Initializing...",
+		stateStatus:      tui.StatusBarStateBlue,
 		commands: []command{
 			{name: "Set user"},
 			{name: "Fetch token", disabled: true},
@@ -45,12 +59,29 @@ func initialModel() model {
 }
 
 func (m model) Init() tea.Cmd {
-	// No I/O
-	return nil
+	return tea.Batch(
+		commands.InitDatabase,
+		m.spinner.Tick,
+	)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+
+	case commands.DbConnection:
+		m.stateDescription = ""
+		m.dbConnection = &msg
+		if m.dbConnection != nil {
+			if m.dbConnection.Err != nil {
+				m.stateStatus = tui.StatusBarStateRed
+				m.stateDescription = "Failed to connect to database: " + shortenErr(m.dbConnection.Err, 35)
+			} else {
+				m.stateStatus = tui.StatusBarStateGreen
+				m.stateDescription = "Connected to database"
+			}
+		}
+		m.loading = false
+		return m, nil
 
 	// Is it a key press?
 	case tea.KeyMsg:
@@ -80,9 +111,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	var cmd tea.Cmd
+	m.spinner, cmd = m.spinner.Update(msg)
+
 	// Return the updated model to the Bubble Tea runtime for processing.
 	// Note that we're not returning a command.
-	return m, nil
+	return m, cmd
+}
+
+func shortenErr(err error, length int) string {
+	if len(err.Error()) < length {
+		return err.Error()
+	}
+
+	return err.Error()[:length] + "..."
 }
 
 func (m model) View() string {
@@ -91,12 +133,18 @@ func (m model) View() string {
 	tui.RenderTitleRow(width, doc, tui.TitleRowProps{Title: "GO TUI example"})
 	doc.WriteString("\n\n")
 
-	renderLists(doc, m)
+	var stateDescription string
+	if !m.loading {
+		stateDescription = m.stateDescription
+		renderLists(doc, m)
+	} else {
+		stateDescription = m.spinner.View()
+	}
 
 	tui.RenderStatusBar(doc, tui.NewStatusBarProps(&tui.StatusBarProps{
-		Description: m.stateDescription,
+		Description: stateDescription,
 		User:        "NONE",
-		StatusState: tui.StatusBarStateBlue,
+		StatusState: m.stateStatus,
 		Width:       width,
 	}))
 
