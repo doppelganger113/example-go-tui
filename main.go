@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"gotui/internal/tui"
 	"log"
 	"os"
@@ -29,6 +29,8 @@ type model struct {
 	stateStatus      tui.StatusBarState
 	commands         []command // items on the to-do list
 	cursor           int       // which to-do list item our cursor is pointing at
+	secondListHeader string
+	secondListValues []string
 }
 
 func initialModel() model {
@@ -61,12 +63,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// The "up" and "k" keys move the cursor up
 		case "up", "k":
 			if m.cursor > 0 {
+				if m.commands[m.cursor-1].disabled {
+					m.cursor--
+				}
 				m.cursor--
 			}
 
 		// The "down" and "j" keys move the cursor down
 		case "down", "j":
 			if m.cursor < len(m.commands)-1 {
+				if m.commands[m.cursor+1].disabled {
+					m.cursor++
+				}
 				m.cursor++
 			}
 		}
@@ -83,8 +91,7 @@ func (m model) View() string {
 	tui.RenderTitleRow(width, doc, tui.TitleRowProps{Title: "GO TUI example"})
 	doc.WriteString("\n\n")
 
-	doc.WriteString(fmt.Sprintf("Cursor: %d", m.cursor))
-	doc.WriteString("\n\n")
+	renderLists(doc, m)
 
 	tui.RenderStatusBar(doc, tui.NewStatusBarProps(&tui.StatusBarProps{
 		Description: m.stateDescription,
@@ -99,6 +106,27 @@ func (m model) View() string {
 
 	// Send the UI for rendering
 	return doc.String()
+}
+
+func renderLists(doc *strings.Builder, m model) {
+	var items []tui.Item
+	for _, c := range m.commands {
+		items = append(items, tui.Item{
+			Value:    c.name,
+			Disabled: c.disabled,
+		})
+	}
+
+	lists := lipgloss.JoinHorizontal(lipgloss.Top,
+		tui.RenderListCommands(doc, &tui.ListProps{
+			Items:    items,
+			Selected: m.cursor,
+		}),
+		tui.RenderListDisplay(m.secondListHeader, m.secondListValues),
+	)
+
+	doc.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, lists))
+	doc.WriteString("\n\n")
 }
 
 func main() {
